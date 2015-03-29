@@ -1,0 +1,125 @@
+---
+output:
+  html_document:
+    keep_md: yes
+---
+
+Таблица результатов
+=====
+
+```{r, echo=FALSE, message=FALSE, results='asis'}
+
+library(dplyr)
+library(xtable)
+
+PERSONAL_LIMIT <- 9
+POINTS_RULE_FILE <- "points.csv"
+PLAYERS_FILE <- "players.csv"
+RESULTS_FILE <- "results.csv"
+
+points_rule <- read.table(POINTS_RULE_FILE) 
+
+players <- read.csv(PLAYERS_FILE, encoding="UTF-8")
+players$group <- factor(players$group)
+
+results <- read.csv(RESULTS_FILE, encoding="UTF-8")
+results$kpm[results$kpm==0] <- NA
+results$errors[results$kpm==0] <- NA
+
+res_by_group <- merge(results, players, by="name") %>%
+    group_by(date, group) %>%
+    mutate(
+            group_rank = rank(place),
+            group_points = points_rule[group_rank, ]) %>%
+    ungroup %>%
+    group_by(name) %>%
+    arrange(group_rank, desc(kpm)) %>%
+    mutate(
+            personal = row_number()) %>%
+    ungroup %>%
+    mutate(
+            effective = ifelse(personal <= PERSONAL_LIMIT & !is.na(group_points), 1, NA),
+            effective_score = ifelse(!is.na(effective), group_points, NA),
+            effective_kpm = ifelse(!is.na(effective), kpm, NA)
+           ) 
+
+player_summary <- res_by_group %>%
+        group_by(name) %>%
+        summarize(total_score = sum(effective_score, na.rm=TRUE),
+                  games_effective = sum(effective, na.rm=TRUE), 
+                  ave_kpm_effective = sum(effective_kpm, na.rm=TRUE) / games_effective,
+                  games_played=n(), 
+                  ave_kpm = mean(kpm, na.rm=TRUE)) %>%
+        left_join(players, by="name") %>% 
+        group_by(group) %>%
+        arrange(desc(total_score), desc(ave_kpm_effective)) %>%
+        mutate(final_place = row_number())
+
+for_print <- player_summary[c("name", 
+                             "final_place", 
+                             "total_score",
+                             "games_effective",
+                             "ave_kpm_effective",
+                             "games_played",
+                             "ave_kpm")]
+
+for_print$games_effective <- as.integer(for_print$games_effective)
+
+all_table = ncol(for_print)
+
+cat("<table border=1>")
+cat("<tr>")
+cat("<th rowspan=2>Имя на сайте</th>")
+cat("<th rowspan=2>Место</th>")
+cat("<th colspan=3>Получение баллов</th>")
+cat("<th colspan=2>Статистика по всем играм</th>")
+cat("</tr>")
+cat("<tr>")
+cat("<th>Всего баллов</th>")
+cat("<th>Лучших игр</th>")
+cat("<th>Средняя скорость</th>")
+cat("<th>Всего игр</th>")
+cat("<th>Средняя скорость</th>")
+cat("</tr>")
+
+for (level in levels(player_summary$group)) {
+    cat("<tr>")
+    cat("<th colspan=", all_table, ">", "Группа ", level, "</th>")
+    cat("</tr>")
+    x <- xtable(for_print[player_summary$group==level, ], align="llcccccc")
+    print(x, type="html",
+          only.contents=TRUE, 
+          include.rownames=FALSE, 
+          include.colnames=FALSE)    
+}
+cat("</table>")
+```
+
+Скорость набора
+=====
+
+Выделенные точки — игры, которые приносят игроку итоговые баллы.
+По правилам турнира, для каждого игрока выбираются до `r PERSONAL_LIMIT` таких игр. Если на линии
+игрока выделены не все допустимые `r PERSONAL_LIMIT` игр, это означает, что в остальных играх игрок
+не занял в своей группе достаточно высокое место, чтобы заработать баллы.
+
+```{r, echo=FALSE, warning=FALSE, fig.width=10, fig.height=6, dpi=300}
+library(ggplot2)
+
+p <- ggplot(res_by_group, 
+            aes(x=date, y=kpm, group=name, colour=name, shape=name)) +
+            geom_point(size = 5, shape=21, aes(colour=name, y=effective_kpm),show_guide = FALSE)
+p + 
+    geom_line() + 
+    geom_point(size=2) +
+    scale_color_hue(name="Имя на сайте") +
+    scale_shape_manual(values=1:nlevels(res_by_group$name), name="Имя на сайте") +
+    theme(axis.text.x = element_text(angle=70,vjust=1,hjust=1)) + 
+    theme(plot.title = element_text(size=20, face="bold", vjust=2)) +
+    labs(x = "") +
+    labs(y = "Знаков в минуту") +
+    labs(title="Скорость набора") +
+    guides(colour=guide_legend(ncol=2))
+```
+
+
