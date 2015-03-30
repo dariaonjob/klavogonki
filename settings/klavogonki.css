@@ -1,0 +1,23 @@
+table.klavogonki_result {
+  border: 1px solid black;
+  padding: 0 0.5em;
+}
+
+table.klavogonki_result th, table.klavogonki_result td {
+  padding: 0 0.5em;
+}
+
+table.klavogonki_result tr:nth-child(-n + 2) th {
+  background-color: #ffffff;
+}
+table.klavogonki_result tr th {
+  background-color: lightgray;
+}
+
+table.klavogonki_result tr:nth-child(2n + 3) td{
+  background-color: lightblue;
+}
+
+table.klavogonki_result tr:nth-child(2n + 4) td{
+  background-color: #ffffff;
+}

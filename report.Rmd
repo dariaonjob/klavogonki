@@ -1,21 +1,22 @@
 ---
 output:
   html_document:
-    keep_md: yes
+    keep_md: no
+    css: settings/klavogonki.css
 ---
 
-Таблица результатов
+Таблица результатов (4 группы)
 =====
 
-```{r, echo=FALSE, message=FALSE, results='asis'}
+```{r, echo=FALSE, message=FALSE}
 
 library(dplyr)
 library(xtable)
 
 PERSONAL_LIMIT <- 9
-POINTS_RULE_FILE <- "points.csv"
-PLAYERS_FILE <- "players.csv"
-RESULTS_FILE <- "results.csv"
+POINTS_RULE_FILE <- "settings/points.csv"
+PLAYERS_FILE <- "data/players-4-group.csv"
+RESULTS_FILE <- "data/results-2015-03-30.csv"
 
 points_rule <- read.table(POINTS_RULE_FILE) 
 
@@ -43,6 +44,11 @@ res_by_group <- merge(results, players, by="name") %>%
             effective_kpm = ifelse(!is.na(effective), kpm, NA)
            ) 
 
+```
+
+Всего игр в списке результатов: `r nlevels(res_by_group$date)`
+
+```{r, echo=FALSE, message=FALSE, results='asis'}
 player_summary <- res_by_group %>%
         group_by(name) %>%
         summarize(total_score = sum(effective_score, na.rm=TRUE),
@@ -67,7 +73,7 @@ for_print$games_effective <- as.integer(for_print$games_effective)
 
 all_table = ncol(for_print)
 
-cat("<table border=1>")
+cat("<table class='klavogonki_result' border=1>")
 cat("<tr>")
 cat("<th rowspan=2>Имя на сайте</th>")
 cat("<th rowspan=2>Место</th>")
