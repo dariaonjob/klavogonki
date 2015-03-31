@@ -15,7 +15,7 @@ library(xtable)
 
 PERSONAL_LIMIT <- 9
 POINTS_RULE_FILE <- "settings/points.csv"
-PLAYERS_FILE <- "data/players-4-group.csv"
+PLAYERS_FILE <- "data/players-4-170.csv"
 RESULTS_FILE <- "data/results-2015-03-30.csv"
 
 points_rule <- read.table(POINTS_RULE_FILE) 
@@ -28,12 +28,13 @@ results$kpm[results$kpm==0] <- NA
 results$errors[results$kpm==0] <- NA
 
 res_with_group <- merge(results, players, by="name")
+res_with_group <- res_with_group[!is.na(res_with_group$group), ]
 
 ngames <- nlevels(res_with_group$date)
 
 ```
 
-Всего игр в списке результатов: `r nlevels(res_by_group$date)`
+Всего игр в списке результатов: `r ngames`
 
 ```{r, echo=FALSE, message=FALSE, results='asis'}
 
